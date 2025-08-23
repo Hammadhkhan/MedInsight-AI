@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+paddleocr
+paddlepaddle
+torch
+torchvision
+
+[test]
+pytest
+httpx
+Pillow

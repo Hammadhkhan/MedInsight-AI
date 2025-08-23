@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medical_advice_assistant"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "python-multipart",
+    "paddleocr",
+    "paddlepaddle",
+    "torch",
+    "torchvision",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "httpx",
+    "Pillow",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
