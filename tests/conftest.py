@@ -13,13 +13,17 @@ def sample_image_path():
     """Creates a sample image for testing and returns the path."""
     text = "Take one tablet by mouth daily"
     filename = "tests/sample_prescription.png"
-    try:
-        font = ImageFont.truetype("DejaVuSans.ttf", 15)
-    except IOError:
-        font = ImageFont.load_default()
 
-    img = Image.new('RGB', (400, 50), color=(255, 255, 255))
+    # Use the bundled font to ensure consistency.
+    font_path = "tests/LiberationSans-Regular.ttf"
+    font = ImageFont.truetype(font_path, size=30)
+
+    # Create a larger image with a white background.
+    img = Image.new('RGB', (600, 100), color=(255, 255, 255))
     d = ImageDraw.Draw(img)
-    d.text((10, 10), text, fill=(0, 0, 0), font=font)
+
+    # Draw the text on the image.
+    d.text((20, 20), text, fill=(0, 0, 0), font=font)
+
     img.save(filename)
     return filename

@@ -9,10 +9,11 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "python-multipart",
-    "paddleocr",
-    "paddlepaddle",
     "torch",
     "torchvision",
+    "numpy",
+    "mediapipe",
+    "easyocr",
 ]
 
 [project.optional-dependencies]

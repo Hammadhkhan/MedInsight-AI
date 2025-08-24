@@ -1,17 +1,18 @@
 from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
-from paddleocr import PaddleOCR
+import easyocr
 from contextlib import asynccontextmanager
 import torch
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from PIL import Image
 import io
+import numpy as np
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the OCR model on startup
-    app.state.ocr = PaddleOCR(use_angle_cls=True, lang='en')
+    app.state.ocr = easyocr.Reader(['en'])
 
     # Load the image analysis model on startup
     weights = EfficientNet_B0_Weights.DEFAULT
@@ -90,14 +91,11 @@ async def analyze_image(file: UploadFile = File(...)):
 @app.post("/upload-document")
 async def upload_document(file: UploadFile = File(...)):
     contents = await file.read()
-    ocr_result = app.state.ocr.ocr(contents, cls=True)
 
-    extracted_text = ""
-    if ocr_result and ocr_result[0] is not None:
-        for line in ocr_result[0]:
-            extracted_text += line[1][0] + " "
+    # easyocr can handle bytes directly
+    ocr_result = app.state.ocr.readtext(contents)
 
-    extracted_text = extracted_text.strip()
+    extracted_text = " ".join([res[1] for res in ocr_result])
 
     if not extracted_text:
         return {
