@@ -3,6 +3,9 @@ from pydantic import BaseModel
 import easyocr
 from contextlib import asynccontextmanager
 import torch
+import mediapipe as mp
+import cv2
+import tempfile
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 from PIL import Image
 import io
@@ -20,11 +23,15 @@ async def lifespan(app: FastAPI):
     app.state.image_analyzer.eval()
     app.state.image_transforms = weights.transforms()
 
+    # Load the pose estimation model on startup
+    app.state.pose_estimator = mp.solutions.pose.Pose()
+
     yield
 
     # Clean up the models on shutdown
     app.state.ocr = None
     app.state.image_analyzer = None
+    app.state.pose_estimator.close()
 
 
 class TextQuery(BaseModel):
@@ -40,10 +47,17 @@ def query_knowledge_base(query: str) -> str:
     """Placeholder for knowledge base retrieval."""
     return "Retrieved information about symptoms and conditions."
 
-def query_llm(query: str, context: str, image_analysis_result: str | None = None) -> str:
+def query_llm(
+    query: str,
+    context: str,
+    image_analysis_result: str | None = None,
+    video_analysis_result: str | None = None
+) -> str:
     """Placeholder for the medical LLM."""
     if image_analysis_result:
         context = f"{context} Image analysis results: {image_analysis_result}."
+    if video_analysis_result:
+        context = f"{context} Video analysis results: {video_analysis_result}."
     return f"Based on the context '{context}', the advice for '{query}' is to consult a doctor."
 
 DISCLAIMER = "This is informational only. Consult a licensed medical professional for diagnosis or treatment."
@@ -53,6 +67,50 @@ def get_advice(query: TextQuery):
     knowledge_base_context = query_knowledge_base(query.text)
     llm_response = query_llm(query.text, knowledge_base_context)
     return {
+        "advice": llm_response,
+        "disclaimer": DISCLAIMER,
+    }
+
+@app.post("/analyze-video")
+async def analyze_video(file: UploadFile = File(...)):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+        contents = await file.read()
+        tmp.write(contents)
+        video_path = tmp.name
+
+    cap = cv2.VideoCapture(video_path)
+    frame_count = 0
+    pose_detected_frame_count = 0
+
+    try:
+        while cap.isOpened():
+            success, image = cap.read()
+            if not success:
+                break
+
+            frame_count += 1
+            # Convert the BGR image to RGB.
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            results = app.state.pose_estimator.process(image)
+
+            if results.pose_landmarks:
+                pose_detected_frame_count += 1
+    finally:
+        cap.release()
+        import os
+        os.remove(video_path)
+
+    mock_analysis = f"Video analysis complete. Pose detected in {pose_detected_frame_count} out of {frame_count} frames."
+
+    # Integrate with advice pipeline
+    query = "analysis of the uploaded video"
+    knowledge_base_context = query_knowledge_base(query)
+    llm_response = query_llm(query, knowledge_base_context, video_analysis_result=mock_analysis)
+
+    return {
+        "filename": file.filename,
+        "analysis": mock_analysis,
         "advice": llm_response,
         "disclaimer": DISCLAIMER,
     }

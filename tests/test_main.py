@@ -32,3 +32,15 @@ def test_analyze_image(client, sample_image_path):
     assert "advice" in json_response
     assert "disclaimer" in json_response
     assert "Image analysis complete" in json_response["analysis"]
+
+def test_analyze_video(client, sample_video_path):
+    with open(sample_video_path, "rb") as f:
+        response = client.post("/analyze-video", files={"file": ("sample_video.mp4", f, "video/mp4")})
+
+    assert response.status_code == 200
+    json_response = response.json()
+    assert json_response["filename"] == "sample_video.mp4"
+    assert "analysis" in json_response
+    assert "advice" in json_response
+    assert "disclaimer" in json_response
+    assert "Video analysis complete" in json_response["analysis"]

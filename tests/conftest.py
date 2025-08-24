@@ -8,6 +8,13 @@ def client():
     with TestClient(app) as c:
         yield c
 
+import os
+
+@pytest.fixture(scope="session")
+def sample_video_path():
+    """Provides the path to the sample video file."""
+    return "tests/sample_video.mp4"
+
 @pytest.fixture(scope="session")
 def sample_image_path():
     """Creates a sample image for testing and returns the path."""
